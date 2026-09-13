@@ -3,263 +3,308 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="محاكي المشي على المسار البلكاني — من أدرنة إلى كاليه. بيانات حقيقية من Frontex و IOM و BVMN و Save the Children.">
-    <meta name="author" content="Balkan Route Walking Simulator">
+    <meta name="description" content="محاكي المشي على المسار البلكاني مع تتبع GPS مباشر">
     <meta name="theme-color" content="#0a0f1c">
-    <title>🚶‍♂️ محاكي المشي — من أدرنة إلى كاليه | Balkan Route Simulator</title>
+    <title>🚶‍♂️ محاكي المشي — تتبع مباشر | Live Balkan Route</title>
 
-    <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://unpkg.com">
-    <link rel="preconnect" href="https://tile.openstreetmap.org">
-    <link rel="preconnect" href="https://server.arcgisonline.com">
-
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossorigin="">
-
-    <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <!-- ============================================================
-     HEADER — Top navigation bar with route summary
+     HEADER
      ============================================================ -->
 <header id="header" role="banner">
     <div class="header-left">
         <div class="header-icon" aria-hidden="true">🚶‍♂️</div>
         <div>
             <h1>محاكي المشي — <span>من أدرنة إلى كاليه</span></h1>
-            <p class="subtitle">
-                مسار واحد • 2,888+ كم • 33 يوم • 10 أيام راحة إجبارية •
-                بيانات حقيقية من Frontex, IOM, BVMN, Save the Children
-            </p>
+            <p class="subtitle">تتبع GPS مباشر • 33 محطة • 2,888 كم • بيانات Frontex/IOM/BVMN</p>
         </div>
     </div>
     <div class="header-right">
-        <div class="badge badge-danger" id="badge-deaths">
-            💀 14 وفاة في كاليه (2026)
-        </div>
-        <div class="badge badge-warning" id="badge-pushbacks">
-            ⚠️ 30,000 حالة صدّ (2020-2022)
-        </div>
-        <div class="badge badge-info" id="badge-route">
-            🎯 الوجهة: كاليه، فرنسا
-        </div>
+        <button id="btn-locate" class="hdr-btn" title="تحديد موقعي">
+            <span class="hdr-btn-icon">📍</span>
+            <span class="hdr-btn-text">موقعي</span>
+        </button>
+        <button id="btn-follow" class="hdr-btn" title="تتبع تلقائي">
+            <span class="hdr-btn-icon">🎯</span>
+            <span class="hdr-btn-text">تتبع</span>
+        </button>
+        <button id="btn-guide" class="hdr-btn active" title="وضع التوجيه">
+            <span class="hdr-btn-icon">🧭</span>
+            <span class="hdr-btn-text">توجيه</span>
+        </button>
+        <span id="gps-status" class="gps-status">
+            <span class="gps-dot"></span>
+            <span class="gps-text">غير متصل</span>
+        </span>
     </div>
 </header>
 
 <!-- ============================================================
-     MAIN LAYOUT — Sidebar + Map
+     MAIN
      ============================================================ -->
 <div id="main" role="main">
 
     <!-- ---------- SIDEBAR ---------- -->
-    <aside id="sidebar" role="complementary" aria-label="Route information panel">
+    <aside id="sidebar" role="complementary">
 
-        <!-- Trip Summary Panel -->
-        <section class="panel" id="panel-summary">
-            <h2 class="panel-title">
-                <span class="panel-icon">📊</span>
-                ملخص الرحلة الكامل
+        <!-- ========== NAVIGATION PANEL (NEW) ========== -->
+        <section class="panel panel-accent" id="panel-nav">
+            <h2 class="panel-title collapsible" data-target="nav-body">
+                <span class="panel-icon">🧭</span>
+                <span>التوجيه المباشر</span>
+                <span class="collapse-arrow">▼</span>
             </h2>
-            <div id="trip-summary" class="panel-content"></div>
-        </section>
-
-        <!-- Real-Time Stats Panel -->
-        <section class="panel" id="panel-stats">
-            <h2 class="panel-title">
-                <span class="panel-icon">📈</span>
-                إحصائيات المسار (2025–2026)
-            </h2>
-            <div id="route-stats" class="panel-content"></div>
-        </section>
-
-        <!-- Daily Schedule Panel -->
-        <section class="panel" id="panel-schedule">
-            <h2 class="panel-title">
-                <span class="panel-icon">📅</span>
-                الجدول اليومي الكامل
-            </h2>
-            <div id="daily-schedule" class="panel-content scrollable"></div>
-        </section>
-
-        <!-- All Stops Panel -->
-        <section class="panel" id="panel-stops">
-            <h2 class="panel-title">
-                <span class="panel-icon">📍</span>
-                كل المحطات — اضغط للطيران
-            </h2>
-            <div id="stop-list" class="panel-content"></div>
-        </section>
-
-        <!-- Barriers Panel -->
-        <section class="panel" id="panel-barriers">
-            <h2 class="panel-title">
-                <span class="panel-icon">🚧</span>
-                الحواجز الحدودية بالتفصيل
-            </h2>
-            <div id="barriers-list" class="panel-content"></div>
-        </section>
-
-        <!-- Drone Surveillance Panel -->
-        <section class="panel" id="panel-drones">
-            <h2 class="panel-title">
-                <span class="panel-icon">🛸</span>
-                مراقبة الطائرات المسيرة
-            </h2>
-            <div id="drone-list" class="panel-content"></div>
-        </section>
-
-        <!-- Risk Zones Panel -->
-        <section class="panel" id="panel-risks">
-            <h2 class="panel-title">
-                <span class="panel-icon">⚠️</span>
-                مناطق الخطر العالي
-            </h2>
-            <div id="risk-list" class="panel-content"></div>
-        </section>
-
-        <!-- Layer Controls Panel -->
-        <section class="panel" id="panel-layers">
-            <h2 class="panel-title">
-                <span class="panel-icon">🗂️</span>
-                الطبقات
-            </h2>
-            <div class="layer-controls">
-                <label class="layer-toggle">
-                    <input type="checkbox" id="toggle-route" checked>
-                    <span class="swatch" style="background:#e53935;"></span>
-                    <span>المسار الرئيسي</span>
-                </label>
-                <label class="layer-toggle">
-                    <input type="checkbox" id="toggle-stops" checked>
-                    <span class="swatch" style="background:#ffc107;"></span>
-                    <span>المحطات اليومية</span>
-                </label>
-                <label class="layer-toggle">
-                    <input type="checkbox" id="toggle-barriers" checked>
-                    <span class="swatch" style="background:#7b1fa2;"></span>
-                    <span>الحواجز الحدودية</span>
-                </label>
-                <label class="layer-toggle">
-                    <input type="checkbox" id="toggle-drones" checked>
-                    <span class="swatch" style="background:#ff6f00;"></span>
-                    <span>مناطق الطائرات المسيرة</span>
-                </label>
-                <label class="layer-toggle">
-                    <input type="checkbox" id="toggle-military" checked>
-                    <span class="swatch" style="background:#37474f;"></span>
-                    <span>المواقع العسكرية</span>
-                </label>
-                <label class="layer-toggle">
-                    <input type="checkbox" id="toggle-rivers" checked>
-                    <span class="swatch" style="background:#0288d1;"></span>
-                    <span>الأنهار والعبور المائي</span>
-                </label>
-                <label class="layer-toggle">
-                    <input type="checkbox" id="toggle-risk" checked>
-                    <span class="swatch" style="background:#c62828;"></span>
-                    <span>مناطق الخطر</span>
-                </label>
-                <label class="layer-toggle">
-                    <input type="checkbox" id="toggle-facilities" checked>
-                    <span class="swatch" style="background:#4caf50;"></span>
-                    <span>المرافق (طعام، ماء، WiFi)</span>
-                </label>
+            <div id="nav-body" class="panel-content expanded">
+                <div id="nav-hud" class="nav-hud"></div>
             </div>
         </section>
 
-        <!-- Sources Panel -->
-        <section class="panel" id="panel-sources">
-            <h2 class="panel-title">
-                <span class="panel-icon">📚</span>
-                المصادر الموثقة
+        <!-- ========== GPS TRACKING PANEL (NEW) ========== -->
+        <section class="panel panel-accent" id="panel-gps">
+            <h2 class="panel-title collapsible" data-target="gps-body">
+                <span class="panel-icon">📡</span>
+                <span>معلومات GPS</span>
+                <span class="collapse-arrow">▼</span>
             </h2>
-            <div class="sources-list">
-                <p><strong>Frontex</strong> — Risk Analysis 2025-2027</p>
-                <p><strong>IOM DTM</strong> — Western Balkans 2026</p>
-                <p><strong>Mixed Migration Centre</strong> — 4Mi Surveys (888 interviews)</p>
-                <p><strong>BVMN</strong> — Border Violence Monitoring Network</p>
-                <p><strong>Save the Children</strong> — Children on the Balkans Route (May 2026)</p>
-                <p><strong>Qantara.de</strong> — Strandzha unmarked graves (2026)</p>
-                <p><strong>InfoMigrants</strong> — Croatia pushbacks (2026)</p>
-                <p><strong>Borderline Europe</strong> — Croatia violence (July 2026)</p>
-                <p><strong>AP News</strong> — 10-day, 200km hike (2015)</p>
-                <p><strong>Gulf Times</strong> — 200km Belgrade-Horgos walk</p>
-                <p><strong>Telegraph</strong> — Calais wall 4m (2016)</p>
-                <p><strong>Libertad Digital</strong> — Calais surveillance (2026)</p>
+            <div id="gps-body" class="panel-content expanded">
+                <div id="gps-info"></div>
+            </div>
+        </section>
+
+        <!-- ========== TRIP SUMMARY ========== -->
+        <section class="panel" id="panel-summary">
+            <h2 class="panel-title collapsible collapsed" data-target="summary-body">
+                <span class="panel-icon">📊</span>
+                <span>ملخص الرحلة</span>
+                <span class="collapse-arrow">▼</span>
+            </h2>
+            <div id="summary-body" class="panel-content">
+                <div id="trip-summary"></div>
+            </div>
+        </section>
+
+        <!-- ========== STATS ========== -->
+        <section class="panel" id="panel-stats">
+            <h2 class="panel-title collapsible collapsed" data-target="stats-body">
+                <span class="panel-icon">📈</span>
+                <span>إحصائيات 2025–2026</span>
+                <span class="collapse-arrow">▼</span>
+            </h2>
+            <div id="stats-body" class="panel-content">
+                <div id="route-stats"></div>
+            </div>
+        </section>
+
+        <!-- ========== SCHEDULE ========== -->
+        <section class="panel" id="panel-schedule">
+            <h2 class="panel-title collapsible collapsed" data-target="schedule-body">
+                <span class="panel-icon">📅</span>
+                <span>الجدول اليومي</span>
+                <span class="collapse-arrow">▼</span>
+            </h2>
+            <div id="schedule-body" class="panel-content scrollable">
+                <div id="daily-schedule"></div>
+            </div>
+        </section>
+
+        <!-- ========== STOPS ========== -->
+        <section class="panel" id="panel-stops">
+            <h2 class="panel-title collapsible collapsed" data-target="stops-body">
+                <span class="panel-icon">📍</span>
+                <span>كل المحطات</span>
+                <span class="collapse-arrow">▼</span>
+            </h2>
+            <div id="stops-body" class="panel-content scrollable">
+                <div id="stop-list"></div>
+            </div>
+        </section>
+
+        <!-- ========== BARRIERS ========== -->
+        <section class="panel" id="panel-barriers">
+            <h2 class="panel-title collapsible collapsed" data-target="barriers-body">
+                <span class="panel-icon">🚧</span>
+                <span>الحواجز الحدودية</span>
+                <span class="collapse-arrow">▼</span>
+            </h2>
+            <div id="barriers-body" class="panel-content">
+                <div id="barriers-list"></div>
+            </div>
+        </section>
+
+        <!-- ========== DRONES ========== -->
+        <section class="panel" id="panel-drones">
+            <h2 class="panel-title collapsible collapsed" data-target="drones-body">
+                <span class="panel-icon">🛸</span>
+                <span>الطائرات المسيرة</span>
+                <span class="collapse-arrow">▼</span>
+            </h2>
+            <div id="drones-body" class="panel-content">
+                <div id="drone-list"></div>
+            </div>
+        </section>
+
+        <!-- ========== RISKS ========== -->
+        <section class="panel" id="panel-risks">
+            <h2 class="panel-title collapsible collapsed" data-target="risks-body">
+                <span class="panel-icon">⚠️</span>
+                <span>مناطق الخطر</span>
+                <span class="collapse-arrow">▼</span>
+            </h2>
+            <div id="risks-body" class="panel-content">
+                <div id="risk-list"></div>
+            </div>
+        </section>
+
+        <!-- ========== LAYERS ========== -->
+        <section class="panel" id="panel-layers">
+            <h2 class="panel-title collapsible collapsed" data-target="layers-body">
+                <span class="panel-icon">🗂️</span>
+                <span>الطبقات</span>
+                <span class="collapse-arrow">▼</span>
+            </h2>
+            <div id="layers-body" class="panel-content">
+                <div class="layer-controls">
+                    <label class="layer-toggle">
+                        <input type="checkbox" id="toggle-route" checked>
+                        <span class="swatch" style="background:#e53935;"></span>
+                        <span>المسار</span>
+                    </label>
+                    <label class="layer-toggle">
+                        <input type="checkbox" id="toggle-stops" checked>
+                        <span class="swatch" style="background:#ffc107;"></span>
+                        <span>المحطات</span>
+                    </label>
+                    <label class="layer-toggle">
+                        <input type="checkbox" id="toggle-labels">
+                        <span class="swatch" style="background:#94a3b8;"></span>
+                        <span>أسماء المحطات</span>
+                    </label>
+                    <label class="layer-toggle">
+                        <input type="checkbox" id="toggle-barriers" checked>
+                        <span class="swatch" style="background:#7b1fa2;"></span>
+                        <span>الحواجز</span>
+                    </label>
+                    <label class="layer-toggle">
+                        <input type="checkbox" id="toggle-drones" checked>
+                        <span class="swatch" style="background:#ff6f00;"></span>
+                        <span>الطائرات المسيرة</span>
+                    </label>
+                    <label class="layer-toggle">
+                        <input type="checkbox" id="toggle-military" checked>
+                        <span class="swatch" style="background:#37474f;"></span>
+                        <span>المواقع العسكرية</span>
+                    </label>
+                    <label class="layer-toggle">
+                        <input type="checkbox" id="toggle-rivers" checked>
+                        <span class="swatch" style="background:#0288d1;"></span>
+                        <span>الأنهار</span>
+                    </label>
+                    <label class="layer-toggle">
+                        <input type="checkbox" id="toggle-risk" checked>
+                        <span class="swatch" style="background:#c62828;"></span>
+                        <span>مناطق الخطر</span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== SOURCES ========== -->
+        <section class="panel" id="panel-sources">
+            <h2 class="panel-title collapsible collapsed" data-target="sources-body">
+                <span class="panel-icon">📚</span>
+                <span>المصادر</span>
+                <span class="collapse-arrow">▼</span>
+            </h2>
+            <div id="sources-body" class="panel-content">
+                <div class="sources-list">
+                    <p><strong>Frontex</strong> — Risk Analysis 2025-2027</p>
+                    <p><strong>IOM DTM</strong> — Western Balkans 2026</p>
+                    <p><strong>MMC 4Mi</strong> — 888 interviews</p>
+                    <p><strong>BVMN</strong> — Border Violence Monitoring</p>
+                    <p><strong>Save the Children</strong> — May 2026</p>
+                    <p><strong>Qantara.de</strong> — Strandzha (2026)</p>
+                    <p><strong>InfoMigrants</strong> — Croatia (2026)</p>
+                    <p><strong>AP News</strong> — 200km hike (2015)</p>
+                    <p><strong>Telegraph</strong> — Calais wall (2016)</p>
+                    <p><strong>Libertad Digital</strong> — Calais (2026)</p>
+                </div>
             </div>
         </section>
 
     </aside>
 
-    <!-- ---------- MAP CONTAINER ---------- -->
-    <div id="map-container" role="application" aria-label="Balkan Route interactive map">
+    <!-- ---------- MAP ---------- -->
+    <div id="map-container" role="application">
         <div id="map"></div>
 
-        <!-- Map Legend Overlay -->
-        <div id="map-legend" class="map-legend">
-            <div class="legend-title">مفتاح الخريطة</div>
-            <div class="legend-item">
-                <span class="legend-dot" style="background:#ff6f00;"></span>
-                <span>نقطة انطلاق</span>
+        <!-- ========== COMPASS HUD (NEW) ========== -->
+        <div id="compass-hud" class="compass-hud" aria-hidden="true">
+            <div class="compass-ring">
+                <div class="compass-dir compass-n">N</div>
+                <div class="compass-dir compass-e">E</div>
+                <div class="compass-dir compass-s">S</div>
+                <div class="compass-dir compass-w">W</div>
+                <div id="compass-arrow" class="compass-arrow">▲</div>
             </div>
-            <div class="legend-item">
-                <span class="legend-dot" style="background:#6a1b9a;"></span>
-                <span>معبر حدودي</span>
+            <div id="compass-heading" class="compass-heading">0°</div>
+        </div>
+
+        <!-- ========== NAVIGATION OVERLAY (NEW) ========== -->
+        <div id="nav-overlay" class="nav-overlay">
+            <div class="nav-next">
+                <div class="nav-next-label">المحطة التالية</div>
+                <div class="nav-next-name" id="nav-next-name">—</div>
+                <div class="nav-next-meta">
+                    <span id="nav-next-distance">— كم</span>
+                    <span class="nav-sep">•</span>
+                    <span id="nav-next-bearing">—°</span>
+                    <span class="nav-sep">•</span>
+                    <span id="nav-next-eta">— س</span>
+                </div>
             </div>
-            <div class="legend-item">
-                <span class="legend-dot" style="background:#1565c0;"></span>
-                <span>مركز رئيسي</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot" style="background:#4caf50;"></span>
-                <span>مخبأ في العراء</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot" style="background:#c62828;"></span>
-                <span>يوم راحة إجباري</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot" style="background:#ffc107;"></span>
-                <span>🎯 الوجهة النهائية</span>
+            <div class="nav-progress">
+                <div class="nav-progress-bar">
+                    <div id="nav-progress-fill" class="nav-progress-fill" style="width:0%"></div>
+                </div>
+                <div class="nav-progress-label">
+                    <span id="nav-progress-text">0 / 2,888 كم</span>
+                </div>
             </div>
         </div>
 
-        <!-- Progress Bar Overlay -->
-        <div id="progress-overlay" class="progress-overlay">
-            <div class="progress-label">
-                <span id="progress-day">اليوم 0</span>
-                <span id="progress-km">0 كم</span>
-            </div>
-            <div class="progress-bar">
-                <div id="progress-fill" class="progress-fill" style="width:0%;"></div>
-            </div>
+        <!-- ========== LEGEND (COLLAPSED) ========== -->
+        <div id="legend-toggle" class="legend-toggle" title="مفتاح الخريطة">
+            <span>🗺️</span>
+        </div>
+        <div id="map-legend" class="map-legend collapsed">
+            <div class="legend-title">مفتاح الخريطة</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#ff6f00;"></span><span>نقطة انطلاق</span></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#6a1b9a;"></span><span>معبر حدودي</span></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#1565c0;"></span><span>مركز رئيسي</span></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#4caf50;"></span><span>مخبأ في العراء</span></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#c62828;"></span><span>يوم راحة</span></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#ffc107;"></span><span>🎯 الوجهة</span></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#2196f3;"></span><span>📍 موقعك</span></div>
         </div>
 
     </div>
 
 </div>
 
-<!-- ============================================================
-     FOOTER
-     ============================================================ -->
 <footer id="footer" role="contentinfo">
-    <p>
-        محاكي المشي على المسار البلكاني — لأغراض تعليمية وبحثية.
-        البيانات مستمدة من تقارير Frontex و IOM و BVMN و Save the Children.
-        لا يشجع هذا المحتوى على الهجرة غير النظامية.
-    </p>
+    <p>محاكي تعليمي — البيانات من Frontex, IOM, BVMN, Save the Children. لا يشجع على الهجرة غير النظامية.</p>
 </footer>
 
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin=""></script>
-
-<!-- Main Script -->
 <script src="script.js"></script>
 
 </body>
